@@ -1,0 +1,31 @@
+:root {
+    font-family: Roboto, Helvetica, sans-serif;
+}
+
+main {
+    width: 1284px;
+    margin: 0 auto;
+    border: solid black 2px;
+}
+
+header, footer {
+    text-align: center;
+}
+
+dl {
+    padding: 0;
+}
+
+dd, dt {
+    display: inline-block;
+    margin-left: 0;
+}
+
+dt {
+    font-weight: bold;
+    margin-right: 0.1em;
+}
+
+dd {
+    margin-right: 3em;
+}
