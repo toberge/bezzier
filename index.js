@@ -14,7 +14,6 @@ const context = canvas.getContext('2d');
 context.strokeStyle = '#2c2c2c';
 context.lineWidth = 3;
 const DELTA = 1/60;
-const SOFTSPOT = DELTA + 1/400;
 const BOX = 5;
 
 const drawFunction = (x0, y0, x1, y1, func) => {
@@ -23,7 +22,7 @@ const drawFunction = (x0, y0, x1, y1, func) => {
 
     context.beginPath();
     context.moveTo(x0,y0); // starting point
-    while (Math.abs(x - x1) > SOFTSPOT || Math.abs(y - y1) > SOFTSPOT) {
+    while (t < 1) { // bezier curve from t=0 to t=1
         // context.beginPath();
         // context.moveTo(x,y); // starting point
 
