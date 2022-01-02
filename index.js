@@ -15,28 +15,17 @@ context.strokeStyle = '#2c2c2c';
 context.lineWidth = 3;
 const DELTA = 1/60;
 const BOX = 5;
+const HITBOX = 12;
 
-const drawFunction = (x0, y0, x1, y1, func) => {
+const drawFunction = (x0, y0, func) => {
     let x = x0, y = y0, t = 0;
-    // let tint = Number(0);
 
     context.beginPath();
     context.moveTo(x0,y0); // starting point
     while (t < 1) { // bezier curve from t=0 to t=1
-        // context.beginPath();
-        // context.moveTo(x,y); // starting point
-
         t += DELTA;
         [x,y] = func(t); // calculate (x,y)
-
-        /*
-        tint = (tint + 1) % (2BOXBOX-16) + 16;
-        if (tint == 0) tint = 16;
-        context.strokeStyle = `#FF00${tint.toString(16)}`;
-        */
-
         context.lineTo(x,y); // line to new (x,y)
-        // context.stroke(); // commit
     }
     context.stroke(); // commit
 }
@@ -68,7 +57,9 @@ const bezier = (points) => {
 }
 
 const drawBezier = points => {
-    drawFunction(points[0].x,points[0].y,points[3].x,points[3].y,bezier(points));
+    for (let i = 0; i + 3 < points.length; i += 3) {
+        drawFunction(points[i].x, points[i].y, bezier(points.slice(i, i+4)));
+    }
 }
 
 let initialPoints = [
@@ -175,21 +166,41 @@ const dragData = {
     point: null
 }
 
+const addPoint = (startTime) => (event) => {
+    if (event.timeStamp - startTime > 300) return;
+    points.push({
+        name: `point ${points.length + 1}`,
+        x: event.offsetX,
+        y: event.offsetY,
+        color: points.length % 3 == 0 ? 'black' : 'blue',
+    })
+    // redraw bezier curve
+    clearBoard();
+    drawHandles(points);
+    drawBezier(points);
+}
+
 document.addEventListener('mousedown', event => {
     for (point of points) {
-        if (squareCollison(event.offsetX, event.offsetY, point.x, point.y, BOX)) {
+        if (squareCollison(event.offsetX, event.offsetY, point.x, point.y, HITBOX)) {
             console.log('Collision with', point.name);
             // remember offset from point
             dragData.offsetX = event.offsetX - point.x;
             dragData.offsetY = event.offsetY - point.y;
             // set which point to modify
-            dragData.point = point
+            dragData.point = point;
             // add event listeners for handling all this
             document.addEventListener('mousemove', handleDrag);
             document.addEventListener('mouseup', handleStopDrag);
+            // abort since we've found a point to drag
+            return;
         }
     }
-})
+
+    // None of the existing points were clicked; create a new one!
+    document.addEventListener('mouseup', addPoint(event.timeStamp), { once: true });
+
+});
 
 document.addEventListener('mousemove', event => {
     if (rectangleCollision(event.pageX, event.pageY, canvas.offsetLeft, canvas.offsetTop, canvas.width, canvas.height)) {
@@ -201,4 +212,6 @@ document.addEventListener('mousemove', event => {
         textX.innerText = '?';
         textY.innerText = '?';
     }
-})
+});
+
+// vim:tw=4
