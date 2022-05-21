@@ -3,6 +3,7 @@
 const canvas = document.getElementById('board');
 const textX = document.getElementById('x-coordinate');
 const textY = document.getElementById('y-coordinate');
+const select = document.getElementById('curve-type');
 
 if (!canvas.getContext) {
     alert("yeah ok you ain't got a canvas mate")
@@ -61,6 +62,16 @@ const drawBezier = points => {
         drawFunction(points[i].x, points[i].y, bezier(points.slice(i, i+4)));
     }
 }
+
+const drawLine = points => {
+    context.beginPath();
+    context.moveTo(points[0].x,points[0].y);
+    for (const point of points.slice(1)) {
+        context.lineTo(point.x, point.y);
+    }
+    context.stroke(); // commit
+}
+
 
 let initialPoints = [
     [200,100],
@@ -145,7 +156,7 @@ const handleDrag = event => {
     // redraw bezier curve
     clearBoard();
     drawHandles(points);
-    drawBezier(points);
+    state.draw(points);
 }
 
 const handleStopDrag = () => {
@@ -154,10 +165,26 @@ const handleStopDrag = () => {
     document.removeEventListener('mouseup', handleStopDrag);
 }
 
+const drawers = {
+    line: drawLine,
+    bezier: drawBezier,
+}
+
+const state = {
+    draw: drawers[select.value] || drawBezier,
+};
+
+select.addEventListener("change", e => {
+    state.draw = drawers[e.target.value] || drawBezier;
+    clearBoard();
+    drawHandles(points);
+    state.draw(points);
+})
+
 // main loop I guess
 clearBoard();
 drawHandles(points);
-drawBezier(points);
+state.draw(points);
 
 // drag-and-drop details
 const dragData = {
@@ -177,7 +204,7 @@ const addPoint = (startTime) => (event) => {
     // redraw bezier curve
     clearBoard();
     drawHandles(points);
-    drawBezier(points);
+    state.draw(points);
 }
 
 canvas.addEventListener('mousedown', event => {
