@@ -150,7 +150,7 @@ const handleDrag = event => {
 
 const handleStopDrag = () => {
     // deregister event handlers
-    document.removeEventListener('mousemove', handleDrag);
+    canvas.removeEventListener('mousemove', handleDrag);
     document.removeEventListener('mouseup', handleStopDrag);
 }
 
@@ -180,7 +180,7 @@ const addPoint = (startTime) => (event) => {
     drawBezier(points);
 }
 
-document.addEventListener('mousedown', event => {
+canvas.addEventListener('mousedown', event => {
     for (point of points) {
         if (squareCollison(event.offsetX, event.offsetY, point.x, point.y, HITBOX)) {
             console.log('Collision with', point.name);
@@ -190,7 +190,7 @@ document.addEventListener('mousedown', event => {
             // set which point to modify
             dragData.point = point;
             // add event listeners for handling all this
-            document.addEventListener('mousemove', handleDrag);
+            canvas.addEventListener('mousemove', handleDrag);
             document.addEventListener('mouseup', handleStopDrag);
             // abort since we've found a point to drag
             return;
@@ -198,11 +198,11 @@ document.addEventListener('mousedown', event => {
     }
 
     // None of the existing points were clicked; create a new one!
-    document.addEventListener('mouseup', addPoint(event.timeStamp), { once: true });
+    canvas.addEventListener('mouseup', addPoint(event.timeStamp), { once: true });
 
 });
 
-document.addEventListener('mousemove', event => {
+canvas.addEventListener('mousemove', event => {
     if (rectangleCollision(event.pageX, event.pageY, canvas.offsetLeft, canvas.offsetTop, canvas.width, canvas.height)) {
         // inside canvas, use offset
         textX.innerText = event.offsetX;
