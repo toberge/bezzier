@@ -26,6 +26,15 @@ dt {
     margin-right: 0.1em;
 }
 
-dd {
-    margin-right: 3em;
+#x-coordinate, #y-coordinate {
+    margin-right: 2em;
+    text-align: left;
+}
+
+#x-coordinate {
+    min-width: 2.5em;
+}
+
+#y-coordinate {
+    min-width: 2em;
 }
