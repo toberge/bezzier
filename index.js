@@ -36,7 +36,7 @@ const drawFunction = (x0, y0, func) => {
  * 
  * @param {{ x:Number, y:Number }[]} points 2D array of four [x,y] pairs
  */
-const bezier = (points) => {
+const cubicBezier = (points) => {
     // bx = 3(x2 − x1)
     const bx = 3*(points[1].x - points[0].x);
     // cx = 3(x3 − x2) − bx
@@ -57,9 +57,31 @@ const bezier = (points) => {
     ]
 }
 
-const drawBezier = points => {
+const drawCubicBezier = points => {
     for (let i = 0; i + 3 < points.length; i += 3) {
-        drawFunction(points[i].x, points[i].y, bezier(points.slice(i, i+4)));
+        drawFunction(points[i].x, points[i].y, cubicBezier(points.slice(i, i+4)));
+    }
+}
+
+/*
+ * Draws n-th degree Bezier curves using DeCasteljau's algorithm
+ */
+const nthDegreeBezier = points => t => {
+    // Copy initial points to modify them withough trouble
+    const p = points.map(point => ({...point})).slice();
+    const n = points.length - 1;
+    for (let r = 1; r <= n; r++) {
+        for (let i = 0; i <= n-r; i++) {
+            p[i].x = (1-t)*p[i].x + t*p[i+1].x;
+            p[i].y = (1-t)*p[i].y + t*p[i+1].y;
+        }
+    }
+    return [p[0].x, p[0].y];
+}
+
+const drawNthDegreeBezier = n => points => {
+    for (let i = 0; i + n < points.length; i += n) {
+        drawFunction(points[i].x, points[i].y, nthDegreeBezier(points.slice(i, i + n + 1)));
     }
 }
 
@@ -82,28 +104,24 @@ let initialPoints = [
 
 let points = [
     {
-        name: 'startpoint',
+        name: 'point 1',
         x: initialPoints[0][0],
         y: initialPoints[0][1],
-        color: 'black'
     },
     {
-        name: 'control point 1',
+        name: 'point 2',
         x: initialPoints[1][0],
         y: initialPoints[1][1],
-        color: 'blue'
     },
     {
-        name: 'control point 2',
+        name: 'point 3',
         x: initialPoints[2][0],
         y: initialPoints[2][1],
-        color: 'blue'
     },
     {
-        name: 'endpoint',
+        name: 'point 4',
         x: initialPoints[3][0],
         y: initialPoints[3][1],
-        color: 'black'
     }
 ]
 
@@ -120,8 +138,9 @@ const drawHandles = points => {
     context.lineWidth = 1.5;
     context.setLineDash([12,6]);
     let lastPoint = null;
-    for (point of points) {
-        if (lastPoint) { // draw line
+    for (let i = 0; i < points.length; i++) {
+        const point = points[i];
+        if (lastPoint && state.curve.numHandles > 0) { // draw line
             context.beginPath();
             context.moveTo(lastPoint.x, lastPoint.y);
             context.lineTo(point.x, point.y);
@@ -129,7 +148,7 @@ const drawHandles = points => {
         }
         lastPoint = point;
         // draw handle for point
-        context.fillStyle = point.color;
+        context.fillStyle = i % (state.curve.numHandles + 1) == 0 ? 'black' : 'blue';
         context.fillRect(point.x - BOX, point.y - BOX, 10, 10);
     }
     context.restore();
@@ -155,43 +174,61 @@ const handleDrag = event => {
     dragData.point.y = event.offsetY - dragData.offsetY;
     // redraw bezier curve
     clearBoard();
+    state.curve.draw(points);
     drawHandles(points);
-    state.draw(points);
-}
+};
 
 const handleStopDrag = () => {
     // deregister event handlers
     canvas.removeEventListener('mousemove', handleDrag);
     document.removeEventListener('mouseup', handleStopDrag);
-}
+};
 
-const drawers = {
-    line: drawLine,
-    bezier: drawBezier,
-}
+const curves = {
+    line: {
+        draw: drawLine,
+        numHandles: 0,
+    },
+    bezier: {
+        draw: drawCubicBezier,
+        numHandles: 2,
+    },
+    quadraticBezier: {
+        draw: drawNthDegreeBezier(2),
+        numHandles: 1,
+    },
+    quarticBezier: {
+        draw: drawNthDegreeBezier(4),
+        numHandles: 3,
+    },
+    quinticBezier: {
+        draw: drawNthDegreeBezier(5),
+        numHandles: 4,
+    },
+};
 
 const state = {
-    draw: drawers[select.value] || drawBezier,
+    curve: curves[select.value] || curves.bezier,
 };
 
 select.addEventListener("change", e => {
-    state.draw = drawers[e.target.value] || drawBezier;
+    state.curve = curves[e.target.value] || curves.bezier;
     clearBoard();
+    state.curve.draw(points);
     drawHandles(points);
-    state.draw(points);
-})
+});
 
 // main loop I guess
 clearBoard();
+state.curve.draw(points);
 drawHandles(points);
-state.draw(points);
 
 // drag-and-drop details
 const dragData = {
     offsetX: 0,
     offsetY: 0,
     point: null
-}
+};
 
 const addPoint = (startTime) => (event) => {
     if (event.timeStamp - startTime > 300) return;
@@ -199,16 +236,17 @@ const addPoint = (startTime) => (event) => {
         name: `point ${points.length + 1}`,
         x: event.offsetX,
         y: event.offsetY,
-        color: points.length % 3 == 0 ? 'black' : 'blue',
     })
     // redraw bezier curve
+    // TODO avoid redrawing all parts, only redraw the part that has changed
+    //      (if possible)
     clearBoard();
+    state.curve.draw(points);
     drawHandles(points);
-    state.draw(points);
-}
+};
 
 canvas.addEventListener('mousedown', event => {
-    for (point of points) {
+    for (const point of points) {
         if (squareCollison(event.offsetX, event.offsetY, point.x, point.y, HITBOX)) {
             console.log('Collision with', point.name);
             // remember offset from point
@@ -226,7 +264,6 @@ canvas.addEventListener('mousedown', event => {
 
     // None of the existing points were clicked; create a new one!
     canvas.addEventListener('mouseup', addPoint(event.timeStamp), { once: true });
-
 });
 
 canvas.addEventListener('mousemove', event => {
